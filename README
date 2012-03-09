@@ -1,0 +1,81 @@
+-------------------------
+	INTRODUCTION
+-------------------------
+
+This repository contains wrappers and tools to use with Stylene, the JAVA-based
+instance generation package. Since Stylene is still under active development,
+these scripts may break or become irrelevant at any time.
+
+The code is provided without warranty, meaning that we cannot guarantee that
+they will function properly and that we cannot be held responsible if something
+goes wrong. We might not always be able to provide support, but in most cases
+the author(s) of the script will be happy to hear your comments, feedback or
+questions.
+
+Contact details for individual script authors can be found inside each script.
+More general questions and remarks can be sent to Frederik Vaassen
+(frederik.vaassen@ua.ac.be).
+
+-------------------------
+	styleneFolding.py
+-------------------------
+
+Pre-requisites:
+-------------------------
+- Python 2.6+
+- a recent version of Stylene (version 2012/03/04 or newer). Specify the
+location of Stylene at the top of the script.
+- startparameters.xml containing the configuration you want to use for Stylene
+
+Input:
+-------------------------
+- a directory containing your data set structured in the following way:
+
+	[data_folder]
+		\_ fold-01
+			\_ [classA]
+				\_ [doc1a.txt]
+				\_ [doc2a.txt]
+				\_ ...
+			\_ [classB]
+				\_ ...
+			\_ ...
+		\_ fold-02
+			\_ [classA]
+				\_ [doc1b.txt]
+				\_ [doc2b.txt]
+				\_ ...
+			\_ [classB]
+			\_ ...
+		\_ ...
+
+Folders and documents can take any name, EXCEPT the "fold-XX" folders, which
+should respect the "fold-\d+" pattern.
+- The individual documents should be Stylene-ready, i.e. one token per line,
+tab-separated columns.
+
+Output:
+-------------------------
+- The script will create train and test folds to use in n-fold cross-validation
+experiments. The value of n depends on the number of fold-XX directories in the
+data folder.
+- The script will call Stylene for each train/test pair, and will retrieve the
+generated instance files. These files will be stores in the "instances"
+directory unless otherwise specified (see "Usage").
+
+
+Usage:
+-------------------------
+$ python styleneFolding.py data_folder (options)
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -o OUTPUT_FOLDER, --out-folder=OUTPUT_FOLDER
+                        Specify the output folder in which the instances will
+                        be stored. (Default: in 'instances')
+  -l LOG_FILE, --log-file=LOG_FILE
+                        Specify the location of the log file where output and
+                        errors will be written. (Default: stylene.log in the
+                        working directory.)
+  -d, --debug           Use this option for a much more verbose log.
