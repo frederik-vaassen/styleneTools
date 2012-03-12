@@ -79,11 +79,17 @@ def getFolds(dataDIR):
 		for label in labels:
 			classes.add(label)
 
-	folds = [(folds[:i]+folds[i+1:], folds[i]) for i in range(len(folds))]
+	if len(folds) == 1:
+		folds = [([folds[0]], None)]
+	else:
+		folds = [(folds[:i]+folds[i+1:], folds[i]) for i in range(len(folds))]
 
 	realized_folds = []
 	for (train, test) in folds:
-		test_folders = [os.path.join(test, d) for d in os.listdir(test)]
+		if test is not None:
+			test_folders = [os.path.join(test, d) for d in os.listdir(test)]
+		else:
+			test_folders = None
 		train_folders =[]
 		for folder in train:
 			train_folders.extend([os.path.join(folder, d) for d in os.listdir(folder)])
@@ -126,10 +132,15 @@ def main(dataDIR, outputDIR):
 
 		print '--Train'
 		runStylene(train_folders, setName, runNumber, num_classes, runType="train")
-		print '--Test'
-		runStylene(test_folders, setName, runNumber, num_classes, runType="test")
-		print '--Retrieving instance files...'
-		workflows = getWorkflow(styleneRUNS, setName)
+		if test_folders is not None:
+			print '--Test'
+			runStylene(test_folders, setName, runNumber, num_classes, runType="test")
+			print '--Retrieving instance files...'
+			workflows = getWorkflow(styleneRUNS, setName, noTest=False)
+		else:
+			print '--Only one fold detected, not generating a test fold...'
+			print '--Retrieving instance files...'
+			workflows = getWorkflow(styleneRUNS, setName, noTest=True)
 		getInstanceFiles(workflows, outputDIR, setName)
 		print '--Done.'
 
@@ -169,6 +180,8 @@ def runStylene(TorT,setName,runNumber,num_classes,runType):
 		out_line = out_line.strip()
 		if 'ERROR' in out_line:
 			log.error(out_line)
+			if 'Exiting...' in out_line:
+				sys.exit('Stylene exited with an error!\n{0}'.format(out_line))
 		else:
 			log.debug(out_line)
 
@@ -197,7 +210,7 @@ def cleanRuns(styleneRUNS):
 	tree.getroot().clear()
 	tree.write(styleneRUNS, encoding='utf-8')
 
-def getWorkflow(styleneRUNS, setName):
+def getWorkflow(styleneRUNS, setName, noTest=False):
 	"""
 	Retrieve workflow id for train and test. Example:
 
@@ -222,12 +235,17 @@ def getWorkflow(styleneRUNS, setName):
 	tree = ElementTree()
 	tree.parse(styleneRUNS)
 	runs = tree.findall('run')
-	trainflow, testflow = zip(runs[::2], runs[1::2])[0]
-	assert trainflow.find('type').text.lower() in ['train', 'training']
-	assert testflow.find('type').text.lower() in ['test', 'testing']
-	assert trainflow.find('set-name').text == testflow.find('set-name').text == setName
+	if noTest:
+		trainflow = runs[0]
+		assert trainflow.find('type').text.lower() in ['train', 'training']
+		trainflow, testflow = trainflow.find('workflow-map').text, None
+	else:
+		trainflow, testflow = zip(runs[::2], runs[1::2])[0]
+		assert testflow.find('type').text.lower() in ['test', 'testing']
+		assert trainflow.find('set-name').text == testflow.find('set-name').text == setName
+		trainflow, testflow = trainflow.find('workflow-map').text, testflow.find('workflow-map').text
 
-	return (trainflow.find('workflow-map').text, testflow.find('workflow-map').text)
+	return (trainflow, testflow)
 
 def getInstanceFiles(workflows, destination, setName):
 	'''
@@ -238,21 +256,26 @@ def getInstanceFiles(workflows, destination, setName):
 	global overwrite_instances
 
 	trainflow, testflow = workflows
-	trainfolder, testfolder = os.path.join(destination, setName, 'train'), os.path.join(destination, setName, 'test')
+
+	trainfolder = os.path.join(destination, setName, 'train')
+	testfolder = None
+	if testflow is not None:
+		testfolder = os.path.join(destination, setName, 'test')
 
 	for flow, folder in [(trainflow, trainfolder), (testflow, testfolder)]:
-		if not overwrite_instances:
-			if os.path.exists(folder):
-				overwrite = raw_input('\n{0} already exists. Are you sure you want to overwrite?\n([y]es/[n]o/[a]lways. Selecting "no" will terminate the script.)\n\n'.format(folder))
-				while True:
-					if overwrite.lower() in ['y', 'yes', 'n', 'no', 'a','always']:
-						break
-					overwrite = raw_input('\nPlease select one of the following options: [y]es/[n]o/[a]lways\n\n')
-				if overwrite in ['a', 'always']:
-					overwrite_instances = True
-				elif overwrite in ['n', 'no']:
-					sys.exit('Process terminated.')
-		dir_util.copy_tree(os.path.join(flow, 'instances'), folder)
+		if flow is not None:
+			if not overwrite_instances:
+				if os.path.exists(folder):
+					overwrite = raw_input('\n{0} already exists. Are you sure you want to overwrite?\n([y]es/[n]o/[a]lways. Selecting "no" will terminate the script.)\n\n'.format(folder))
+					while True:
+						if overwrite.lower() in ['y', 'yes', 'n', 'no', 'a','always']:
+							break
+						overwrite = raw_input('\nPlease select one of the following options: [y]es/[n]o/[a]lways\n\n')
+					if overwrite in ['a', 'always']:
+						overwrite_instances = True
+					elif overwrite in ['n', 'no']:
+						sys.exit('Process terminated.')
+			dir_util.copy_tree(os.path.join(flow, 'instances'), folder)
 
 if __name__ == '__main__':
 
