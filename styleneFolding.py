@@ -51,21 +51,13 @@ from optparse import OptionParser
 import logging
 import logging.handlers
 
-STYLENE		=	'/home/frederik/Tools/Stylene'
-styleneJAR	=	os.path.join(STYLENE, 'stylene.jar')
-styleneRUN	=	os.path.join(STYLENE, 'stylenerun')
-styleneRUNS	=	os.path.join(styleneRUN, 'styleneruns.xml')
-newPARAMS	=	os.path.join(styleneRUN, 'startparameters.xml')
-UPLOADFILES	=	os.path.join(styleneRUN, 'data/uploadfiles')
-PARAMS		=	os.path.abspath('startparameters.xml')
-
 overwrite_instances = False
 
 def getFolds(dataDIR):
 	'''
 	List the folders that need to be in each train or test partition.
-	'''
 
+	'''
 	folds = sorted([os.path.join(dataDIR, folder) for folder in os.listdir(dataDIR) if re.match('fold-\d+', folder)])
 
 	classes = set()
@@ -99,8 +91,8 @@ def getFolds(dataDIR):
 
 def removeDSstore(dataDIR):
 	'''
-	Runs through a directory and all its subdirectories, and deletes all DS_Store
-	files.
+	Runs through a directory and all its subdirectories, and deletes all
+	.DS_Store files.
 
 	'''
 	for root, dirs, files in os.walk(dataDIR):
@@ -144,15 +136,15 @@ def main(dataDIR, outputDIR):
 		getInstanceFiles(workflows, outputDIR, setName)
 		print '--Done.'
 
-def runStylene(TorT,setName,runNumber,num_classes,runType):
-	"""
+def runStylene(TorT, setName, runNumber, num_classes,runType):
+	'''
 	First, remove existing material in UPLOADFILES and copy the TRAINING or TEST
 	data to UPLOADFILES. Then, adapt the local startparameters.xml file and copy
 	it to styleneRUN.
 	Finally, run stylene and remove the data from styleneRUN/data again
-	"""
 
-	# First, remove material present in TEMP and UPLOADFILES
+	'''
+	# First, remove material present in UPLOADFILES
 	try:
 		print '---Emptying uploadfiles directory...'
 		x=[dir_util.remove_tree(os.path.join(UPLOADFILES,d)) for d in os.listdir(UPLOADFILES)]
@@ -190,19 +182,21 @@ def adaptPARAMS(setName, runNumber, num_classes, runType):
 	Adapt the parameter file and copy it to styleneRUN.
 
 	'''
+	modPARAMS = os.path.splitext(PARAMS)[0] + '-mod.xml'
 	tree = ElementTree()
 	tree.parse(PARAMS)
 	tree.find('run-type').text = str(runType)
 	tree.find('run-number').text = str(runNumber)
 	tree.find('set-name').text = str(setName)
 	tree.find('number-of-classes').text = str(num_classes)
-	tree.write(PARAMS, encoding='utf-8')
+	tree.write(modPARAMS, encoding='utf-8')
 
-	file_util.copy_file(PARAMS, newPARAMS)
+	file_util.copy_file(modPARAMS, newPARAMS)
 
 def cleanRuns(styleneRUNS):
 	'''
-	If you do not remove the previous runs from styleneRUNS, Stylene will produce ERRORS
+	If you do not remove the previous runs from styleneRUNS, Stylene will produce
+	ERRORS.
 
 	'''
 	tree = ElementTree()
@@ -211,7 +205,7 @@ def cleanRuns(styleneRUNS):
 	tree.write(styleneRUNS, encoding='utf-8')
 
 def getWorkflow(styleneRUNS, setName, noTest=False):
-	"""
+	'''
 	Retrieve workflow id for train and test. Example:
 
 	<run>
@@ -231,7 +225,7 @@ def getWorkflow(styleneRUNS, setName, noTest=False):
 		<url></url>
 	</run>
 
-	"""
+	'''
 	tree = ElementTree()
 	tree.parse(styleneRUNS)
 	runs = tree.findall('run')
@@ -313,6 +307,10 @@ The text documents should be in a Stylene-ready format, i.e. one token per line.
 						help="Specify the location of the log file where output and errors will be written. (Default: stylene.log in the working directory.)")
 	parser.add_option('-d', '--debug', dest='debug', default=False, action='store_true',
 						help="Use this option for a much more verbose log.")
+	parser.add_option('--stylene-path', dest='stylene_path', default='/opt/Stylene',
+						help="Specify the path to Stylene. (Default: /opt/Stylene)")
+	parser.add_option('--params-file', dest='params_file', default='startparameters.xml',
+						help="Specify the path to Stylene's parameters XML. (Default: startparameters.xml")
 	(options, args) = parser.parse_args()
 
 	if len(args) != 1:
@@ -320,6 +318,14 @@ The text documents should be in a Stylene-ready format, i.e. one token per line.
 
 	input_folder = args[0]
 	output_folder = options.output_folder
+	STYLENE = options.stylene_path
+	styleneJAR	=	os.path.join(STYLENE, 'stylene.jar')
+	assert os.path.exists(styleneJAR), 'stylene.jar not found!'
+	styleneRUN	=	os.path.join(STYLENE, 'stylenerun')
+	styleneRUNS	=	os.path.join(styleneRUN, 'styleneruns.xml')
+	newPARAMS	=	os.path.join(styleneRUN, 'startparameters.xml')
+	UPLOADFILES	=	os.path.join(styleneRUN, 'data/uploadfiles')
+	PARAMS		=	os.path.abspath(options.params_file)
 
 	LOG_FILENAME = options.log_file
 	log = logging.getLogger('stylene-log')
