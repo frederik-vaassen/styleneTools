@@ -115,14 +115,12 @@
 		<engine>
 			<name>Svm</name>
 		</engine>
-<!--
 		<engine>
 			<name>Timbl</name>
 		</engine>
 		<engine>
 			<name>Weka</name>
 		</engine>
--->
 	</engines>
 
 	<precision digits="7"/>

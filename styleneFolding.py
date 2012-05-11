@@ -120,6 +120,7 @@ def main(dataDIR, outputDIR):
 		runNumber = i+1
 
 		# Clean out the styleneruns.xml files to avoid errors.
+		print 'Clearing stylenruns.xml'
 		cleanRuns(styleneRUNS)
 
 		print '--Train'
@@ -127,12 +128,11 @@ def main(dataDIR, outputDIR):
 		if test_folders is not None:
 			print '--Test'
 			runStylene(test_folders, setName, runNumber, num_classes, runType="test")
-			print '--Retrieving instance files...'
 			workflows = getWorkflow(styleneRUNS, setName, noTest=False)
 		else:
 			print '--Only one fold detected, not generating a test fold...'
-			print '--Retrieving instance files...'
 			workflows = getWorkflow(styleneRUNS, setName, noTest=True)
+		print '--Retrieving instance files...'
 		getInstanceFiles(workflows, outputDIR, setName)
 		print '--Done.'
 
