@@ -28,7 +28,7 @@ Generate instances for cross-validation experiments using Stylene, the
 JAVA-based instance generation package.
 
 Prerequisites are:
-- a recent, working version of Stylene (2012/03/04 or later)
+- a recent, working version of Stylene (2012/06/15 or later)
 - a folder with your folds in the appropriate structure (see styleneFolding.py -h)
 - a startparameters file (in the same directory as this script) with the
 configuration you wish to use for Stylene.
@@ -37,8 +37,7 @@ Make sure you adapt the path to Stylene below.
 
 '''
 
-__author__ = 	'Kim Luyckx (kim.luyckx@ua.ac.be); \
-				Frederik Vaassen (frederik.vaassen@ua.ac.be)'
+__author__ = 	'Frederik Vaassen (frederik.vaassen@ua.ac.be); Kim Luyckx (kim.luyckx@ua.ac.be)'
 
 import sys
 import os
@@ -71,17 +70,11 @@ def getFolds(dataDIR):
 		for label in labels:
 			classes.add(label)
 
-	if len(folds) == 1:
-		folds = [([folds[0]], None)]
-	else:
-		folds = [(folds[:i]+folds[i+1:], folds[i]) for i in range(len(folds))]
+	folds = [(folds[:i]+folds[i+1:], folds[i]) for i in range(len(folds))]
 
 	realized_folds = []
 	for (train, test) in folds:
-		if test is not None:
-			test_folders = [os.path.join(test, d) for d in os.listdir(test)]
-		else:
-			test_folders = None
+		test_folders = [os.path.join(test, d) for d in os.listdir(test)]
 		train_folders =[]
 		for folder in train:
 			train_folders.extend([os.path.join(folder, d) for d in os.listdir(folder)])
@@ -125,13 +118,8 @@ def main(dataDIR, outputDIR):
 
 		print '--Train'
 		runStylene(train_folders, setName, runNumber, num_classes, runType="train")
-		if test_folders is not None:
-			print '--Test'
-			runStylene(test_folders, setName, runNumber, num_classes, runType="test")
-			workflows = getWorkflow(styleneRUNS, setName, noTest=False)
-		else:
-			print '--Only one fold detected, not generating a test fold...'
-			workflows = getWorkflow(styleneRUNS, setName, noTest=True)
+		runStylene(test_folders, setName, runNumber, num_classes, runType="test")
+		workflows = getWorkflow(styleneRUNS, setName)
 		print '--Retrieving instance files...'
 		getInstanceFiles(workflows, outputDIR, setName)
 		print '--Done.'
@@ -140,8 +128,8 @@ def runStylene(TorT, setName, runNumber, num_classes,runType):
 	'''
 	First, remove existing material in UPLOADFILES and copy the TRAINING or TEST
 	data to UPLOADFILES. Then, adapt the local startparameters.xml file and copy
-	it to styleneRUN.
-	Finally, run stylene and remove the data from styleneRUN/data again
+	it to STYLENE.
+	Finally, run stylene and remove the data from STYLENE/data again
 
 	'''
 	# First, remove material present in UPLOADFILES
@@ -179,7 +167,7 @@ def runStylene(TorT, setName, runNumber, num_classes,runType):
 
 def adaptPARAMS(setName, runNumber, num_classes, runType):
 	'''
-	Adapt the parameter file and copy it to styleneRUN.
+	Adapt the parameter file and copy it to STYLENE.
 
 	'''
 	modPARAMS = os.path.splitext(PARAMS)[0] + '-mod.xml'
@@ -199,12 +187,13 @@ def cleanRuns(styleneRUNS):
 	ERRORS.
 
 	'''
+	print styleneRUNS
 	tree = ElementTree()
 	tree.parse(styleneRUNS)
 	tree.getroot().clear()
 	tree.write(styleneRUNS, encoding='utf-8')
 
-def getWorkflow(styleneRUNS, setName, noTest=False):
+def getWorkflow(styleneRUNS, setName):
 	'''
 	Retrieve workflow id for train and test. Example:
 
@@ -229,15 +218,10 @@ def getWorkflow(styleneRUNS, setName, noTest=False):
 	tree = ElementTree()
 	tree.parse(styleneRUNS)
 	runs = tree.findall('run')
-	if noTest:
-		trainflow = runs[0]
-		assert trainflow.find('type').text.lower() in ['train', 'training']
-		trainflow, testflow = trainflow.find('workflow-map').text, None
-	else:
-		trainflow, testflow = zip(runs[::2], runs[1::2])[0]
-		assert testflow.find('type').text.lower() in ['test', 'testing']
-		assert trainflow.find('set-name').text == testflow.find('set-name').text == setName
-		trainflow, testflow = trainflow.find('workflow-map').text, testflow.find('workflow-map').text
+	trainflow, testflow = zip(runs[::2], runs[1::2])[0]
+	assert testflow.find('type').text.lower() in ['test', 'testing']
+	assert trainflow.find('set-name').text == testflow.find('set-name').text == setName
+	trainflow, testflow = trainflow.find('workflow-map').text, testflow.find('workflow-map').text
 
 	return (trainflow, testflow)
 
@@ -252,24 +236,21 @@ def getInstanceFiles(workflows, destination, setName):
 	trainflow, testflow = workflows
 
 	trainfolder = os.path.join(destination, setName, 'train')
-	testfolder = None
-	if testflow is not None:
-		testfolder = os.path.join(destination, setName, 'test')
+	testfolder = os.path.join(destination, setName, 'test')
 
 	for flow, folder in [(trainflow, trainfolder), (testflow, testfolder)]:
-		if flow is not None:
-			if not overwrite_instances:
-				if os.path.exists(folder):
-					overwrite = raw_input('\n{0} already exists. Are you sure you want to overwrite?\n([y]es/[n]o/[a]lways. Selecting "no" will terminate the script.)\n\n'.format(folder))
-					while True:
-						if overwrite.lower() in ['y', 'yes', 'n', 'no', 'a','always']:
-							break
-						overwrite = raw_input('\nPlease select one of the following options: [y]es/[n]o/[a]lways\n\n')
-					if overwrite in ['a', 'always']:
-						overwrite_instances = True
-					elif overwrite in ['n', 'no']:
-						sys.exit('Process terminated.')
-			dir_util.copy_tree(os.path.join(flow, 'instances'), folder)
+		if not overwrite_instances:
+			if os.path.exists(folder):
+				overwrite = raw_input('\n{0} already exists. Are you sure you want to overwrite?\n([y]es/[n]o/[a]lways. Selecting "no" will terminate the script.)\n\n'.format(folder))
+				while True:
+					if overwrite.lower() in ['y', 'yes', 'n', 'no', 'a','always']:
+						break
+					overwrite = raw_input('\nPlease select one of the following options: [y]es/[n]o/[a]lways\n\n')
+				if overwrite in ['a', 'always']:
+					overwrite_instances = True
+				elif overwrite in ['n', 'no']:
+					sys.exit('Process terminated.')
+		dir_util.copy_tree(os.path.join(flow, 'instances'), folder)
 
 if __name__ == '__main__':
 
@@ -321,10 +302,10 @@ The text documents should be in a Stylene-ready format, i.e. one token per line.
 	STYLENE = options.stylene_path
 	styleneJAR	=	os.path.join(STYLENE, 'stylene.jar')
 	assert os.path.exists(styleneJAR), 'stylene.jar not found!'
-	styleneRUN	=	os.path.join(STYLENE, 'stylenerun')
-	styleneRUNS	=	os.path.join(styleneRUN, 'styleneruns.xml')
-	newPARAMS	=	os.path.join(styleneRUN, 'startparameters.xml')
-	UPLOADFILES	=	os.path.join(styleneRUN, 'data/uploadfiles')
+	styleneRUNS	=	os.path.join(STYLENE, 'styleneruns.xml')
+	assert os.path.exists(styleneRUNS), 'styleneruns.xml not found!'
+	newPARAMS	=	os.path.join(STYLENE, 'startparameters.xml')
+	UPLOADFILES	=	os.path.join(STYLENE, 'data', 'uploadfiles')
 	PARAMS		=	os.path.abspath(options.params_file)
 
 	LOG_FILENAME = options.log_file

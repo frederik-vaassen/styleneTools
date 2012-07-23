@@ -1,66 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <start-parameters
-	xsi:noNamespaceSchemaLocation="startparameters.xsd"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-	<run-type>training</run-type>
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="startparameters.xsd">
+	<run-type>train</run-type>
 	<run-number>1</run-number>
-	<set-name>fold00</set-name>
-	<number-of-classes>4</number-of-classes>
+	<set-name>Jurgita-Lietuvos_ryto</set-name>
+	<number-of-classes>11</number-of-classes>
+
+	<!--
+	<parsers>
+		<parser>
+			<name>Frog</name>
+		</parser>
+	</parsers>
+	-->
+
 	<parse-table>
 		<number-of-columns>1</number-of-columns>
 		<separation-character>tab</separation-character>
 	</parse-table>
 	<analyses>
+
 		<analysis>
 			<name>Token</name>
 			<n>1</n>
 			<column>1</column>
 			<count-type>relative</count-type>
 		</analysis>
+		<analysis>
+			<name>Token</name>
+			<n>2</n>
+			<column>1</column>
+			<count-type>relative</count-type>
+		</analysis>
 <!--
-        <analysis>
-			<name>Token</name>
-			<n>2</n>
-			<column>1</column>
-			<count-type>relative</count-type>
-		</analysis>
-        <analysis>
+		<analysis>
 			<name>Token</name>
 			<n>3</n>
 			<column>1</column>
 			<count-type>relative</count-type>
 		</analysis>
-        <analysis>
-            <name>Character</name>
-			<n>2</n>
+		<analysis>
+			<name>Skipgram</name>
+			<n>3</n>
 			<column>1</column>
-			<type>document</type>
-			<count-type>relative</count-type>
+			<count-type>absolute</count-type>
+			<skip-n>2</skip-n>
 		</analysis>
-        <analysis>
-            <name>Character</name>
+		<analysis>
+			<name>Skipgram</name>
+			<n>5</n>
+			<column>1</column>
+			<count-type>absolute</count-type>
+			<skip-n>2</skip-n>
+		</analysis>
+		<analysis>
+			<name>Skipgram</name>
+			<n>5</n>
+			<column>1</column>
+			<count-type>absolute</count-type>
+			<skip-n>4</skip-n>
+		</analysis>
+-->
+		<analysis>
+			<name>Character</name>
 			<n>3</n>
 			<column>1</column>
 			<type>document</type>
 			<count-type>relative</count-type>
 		</analysis>
-        <analysis>
-            <name>Character</name>
+		<analysis>
+			<name>Character</name>
 			<n>4</n>
 			<column>1</column>
 			<type>document</type>
 			<count-type>relative</count-type>
 		</analysis>
--->
 	</analyses>
 
+<!--
 	<meta-analyses>
 		<meta-analysis>
 			<name>Text Statistics</name>
 			<column>1</column>
 		</meta-analysis>
 	</meta-analyses>
+-->
 
 	<!--
 		Filters:
@@ -73,54 +98,65 @@
 		Voor percentage
 			n - m		: begint van de index die overeenkomt met n % en loopt tot index die overeenkomt met m %
 	-->
-<!--
+	<!--
 	<filters>
+
+		<filter>
+			<name>Total Set</name>
+			<range>
+
+				<index>
+					<upper>first</upper>
+					<lower>50</lower>
+				</index>
+
+				<percentage>
+					<upper>75</upper>
+					<lower>0</lower>
+				</percentage>
+
+			</range>
+		</filter>
+
 
 		<filter>
 			<name>Chi Square</name>
 			<cut-off>100</cut-off>
-			<validity-cut-off>1</validity-cut-off>
+			<validity-cut-off>2</validity-cut-off>
 		</filter>
+
 		<filter>
-                        <name>Chi Square</name>
-                        <cut-off>500</cut-off>
-                        <validity-cut-off>1</validity-cut-off>
-                </filter>
-		<filter>
-                        <name>Chi Square</name>
-                        <cut-off>1000</cut-off>
-                        <validity-cut-off>1</validity-cut-off>
-                </filter>
-		<filter>
-                        <name>Chi Square</name>
-                        <cut-off>5000</cut-off>
-                        <validity-cut-off>1</validity-cut-off>
-                </filter>
-		<filter>
-                        <name>Chi Square</name>
-                        <cut-off>10000</cut-off>
-                        <validity-cut-off>1</validity-cut-off>
-                </filter>
+			<name>Information Gain</name>
+			<cut-off>100</cut-off>
+			<validity-cut-off>2</validity-cut-off>
+			<gain-weighted status="on" weight="0.8"/>
+		</filter>
 
 	</filters>
-
+	-->
 
 	<pruning>
 		<frequency>0</frequency>
 		<percentage>0</percentage>
 	</pruning>
--->
 
 	<engines>
-		<engine>
-			<name>Svm</name>
-		</engine>
+		<!--
 		<engine>
 			<name>Timbl</name>
+			<run>off</run>
 		</engine>
+		-->
+		<engine>
+			<name>Svm</name>
+			<run>off</run>
+		</engine>
+		<!--
 		<engine>
 			<name>Weka</name>
+			<run>off</run>
 		</engine>
+		-->
 	</engines>
 
 	<precision digits="7"/>
